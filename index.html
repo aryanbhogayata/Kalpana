@@ -441,13 +441,26 @@
                     cachedAudio.play().catch(e => console.log("Audio play blocked", e));
                 }
             } catch (err) {
-                console.error("Audio failed", err);
+                console.error("AI Audio failed, using native fallback", err);
                 openModal(); // Open it anyway if TTS fails to load
+                fallbackTTS(); // Trigger the browser's built-in speech API
             } finally {
                 revealBtn.innerHTML = originalText;
                 revealBtn.disabled = false;
             }
         });
+
+        function fallbackTTS() {
+            if ('speechSynthesis' in window) {
+                // Cancel any currently playing speech
+                window.speechSynthesis.cancel(); 
+                
+                const utterance = new SpeechSynthesisUtterance("Meow! I love you!");
+                utterance.pitch = 1.8; // High pitch for a "cute" voice
+                utterance.rate = 1.1;  // Slightly faster pacing
+                window.speechSynthesis.speak(utterance);
+            }
+        }
 
         closeLetterBtn.addEventListener('click', () => {
             letterModal.classList.remove('opacity-100', 'pointer-events-auto');
@@ -457,6 +470,9 @@
             if (cachedAudio) {
                 cachedAudio.pause();
                 cachedAudio.currentTime = 0; // Reset audio to the beginning
+            }
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel(); // Stop fallback audio if playing
             }
         });
 
@@ -494,6 +510,10 @@
                 body: JSON.stringify(payload)
             });
             
+            if (!response.ok) {
+                throw new Error("Missing API Key or API error");
+            }
+
             const result = await response.json();
             const part = result?.candidates?.[0]?.content?.parts?.[0];
             const audioData = part?.inlineData?.data;

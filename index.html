@@ -303,31 +303,55 @@
             }
         }
 
+        // --- NEW: Advanced Web Audio API Synthesizer for a Realistic Meow ---
         function playMeowSound() {
             if (!audioCtx) return;
             
-            // Create a custom synthesized "meow/purr" sound
+            const time = audioCtx.currentTime;
+
+            // 1. Source: Sawtooth wave for richer vocal-like harmonics
             const osc = audioCtx.createOscillator();
+            osc.type = 'sawtooth';
+
+            // 2. Pitch Envelope: Sweeps up then down (Mee-ow)
+            osc.frequency.setValueAtTime(350, time);
+            osc.frequency.exponentialRampToValueAtTime(700, time + 0.3);
+            osc.frequency.exponentialRampToValueAtTime(300, time + 0.8);
+
+            // 3. Formant Filter: Simulates a cat's mouth opening and closing
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.Q.value = 6; 
+            // Start closed (M), open wide (ee), close again (ow)
+            filter.frequency.setValueAtTime(600, time);
+            filter.frequency.exponentialRampToValueAtTime(1600, time + 0.25);
+            filter.frequency.exponentialRampToValueAtTime(500, time + 0.8);
+
+            // 4. Vibrato: Adds organic wobble to the voice
+            const lfo = audioCtx.createOscillator();
+            lfo.type = 'sine';
+            lfo.frequency.value = 6;
+            const lfoGain = audioCtx.createGain();
+            lfoGain.gain.value = 20;
+            lfo.connect(lfoGain);
+            lfoGain.connect(osc.frequency);
+
+            // 5. Volume Envelope: Smooth attack and decay
             const gainNode = audioCtx.createGain();
-            
-            // Triangle wave gives a softer, somewhat vocal timbre
-            osc.type = 'triangle';
-            
-            // Frequency glissando (slide) to simulate a meow inflection
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime); // Start pitch
-            osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 0.3); // Pitch up
-            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.6); // Pitch down
-            
-            // Volume envelope to make it fade in and out smoothly
-            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
-            gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.1); // Attack
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6); // Release
-            
-            osc.connect(gainNode);
+            gainNode.gain.setValueAtTime(0, time);
+            gainNode.gain.linearRampToValueAtTime(0.5, time + 0.1); // Attack
+            gainNode.gain.exponentialRampToValueAtTime(0.01, time + 0.8); // Release
+
+            // Connect everything
+            osc.connect(filter);
+            filter.connect(gainNode);
             gainNode.connect(audioCtx.destination);
-            
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.6);
+
+            // Play the sound
+            osc.start(time);
+            lfo.start(time);
+            osc.stop(time + 0.9);
+            lfo.stop(time + 0.9);
         }
 
         const eyesDefault = document.getElementById('eyes-default');
@@ -417,6 +441,14 @@
         
         let hasFetchedAudio = false;
         let cachedAudio = null;
+        let availableVoices = []; // Cache for native voices
+
+        // Pre-load voices for the fallback so it's ready immediately
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                availableVoices = window.speechSynthesis.getVoices();
+            };
+        }
 
         revealBtn.addEventListener('click', async () => {
             if (hasFetchedAudio && cachedAudio) {
@@ -435,10 +467,19 @@
             }
 
             try {
-                await fetchCatTTS();
-                openModal();
-                if (cachedAudio.src) {
+                // Step 1: Check if the local audio file exists (for when you publish to GitHub)
+                const localAudioWorks = await tryLocalAudio();
+                
+                if (localAudioWorks) {
+                    openModal();
                     cachedAudio.play().catch(e => console.log("Audio play blocked", e));
+                } else {
+                    // Step 2: If local file is missing (like in this editor), generate it via Gemini API
+                    await fetchCatTTS();
+                    openModal();
+                    if (cachedAudio.src) {
+                        cachedAudio.play().catch(e => console.log("Audio play blocked", e));
+                    }
                 }
             } catch (err) {
                 console.error("AI Audio failed, using native fallback", err);
@@ -450,15 +491,52 @@
             }
         });
 
+        async function tryLocalAudio() {
+            try {
+                // Looks for the file in the same folder as your index.html on GitHub
+                const response = await fetch('./kitty-voice.wav');
+                if (response.ok) {
+                    const blob = await response.blob();
+                    cachedAudio.src = URL.createObjectURL(blob);
+                    hasFetchedAudio = true;
+                    return true;
+                }
+                return false;
+            } catch (e) {
+                return false; // File not found or network error
+            }
+        }
+
         function fallbackTTS() {
             if ('speechSynthesis' in window) {
-                // Cancel any currently playing speech
                 window.speechSynthesis.cancel(); 
                 
-                const utterance = new SpeechSynthesisUtterance("Meow! I love you!");
-                utterance.pitch = 1.8; // High pitch for a "cute" voice
-                utterance.rate = 1.1;  // Slightly faster pacing
-                window.speechSynthesis.speak(utterance);
+                // Play our new, highly realistic synthesized meow first!
+                playMeowSound();
+
+                // Then, say "I love you" using the best available native voice
+                setTimeout(() => {
+                    const utterance = new SpeechSynthesisUtterance("I love you!");
+                    utterance.pitch = 1.4; 
+                    utterance.rate = 1.0;  
+
+                    // Try to pick a pleasant, smooth female voice if available
+                    if (availableVoices.length === 0) {
+                        availableVoices = window.speechSynthesis.getVoices();
+                    }
+                    const cuteVoice = availableVoices.find(v => 
+                        v.name.includes('Samantha') || 
+                        v.name.includes('Karen') || 
+                        v.name.includes('Tessa') || 
+                        v.name.includes('Google UK English Female') ||
+                        (v.name.includes('Female') && v.lang.startsWith('en'))
+                    );
+                    if (cuteVoice) {
+                        utterance.voice = cuteVoice;
+                    }
+
+                    window.speechSynthesis.speak(utterance);
+                }, 800); // Wait for the 0.8s meow to finish before speaking
             }
         }
 
@@ -529,6 +607,14 @@
                 
                 cachedAudio.src = audioUrl;
                 hasFetchedAudio = true;
+
+                // Automatically download the file so you can upload it to GitHub!
+                const downloadLink = document.createElement('a');
+                downloadLink.href = audioUrl;
+                downloadLink.download = 'kitty-voice.wav';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+                document.body.removeChild(downloadLink);
             }
         }
 

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retro Romance Arcade</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Press Start 2P', cursive;
+            background-color: #050510;
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            touch-action: manipulation;
+        }
+
+        /* CRT Screen Overlay Effect */
+        .crt::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        @keyframes blink {
+            0%, 49% { opacity: 1; }
+            50%, 100% { opacity: 0; }
+        }
+
+        .blink {
+            animation: blink 1s step-end infinite;
+        }
+
+        @keyframes heartbeat {
+            0% { transform: scale(1); }
+            14% { transform: scale(1.3); }
+            28% { transform: scale(1); }
+            42% { transform: scale(1.3); }
+            70% { transform: scale(1); }
+            100% { transform: scale(1); }
+        }
+
+        .heartbeat {
+            animation: heartbeat 1.5s infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .float {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        #game-screen {
+            width: 100%;
+            max-width: 800px;
+            aspect-ratio: 4/3;
+            background: #000;
+            position: relative;
+            border: 4px solid #333;
+            border-radius: 16px;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), inset 0 0 30px rgba(0, 0, 0, 0.8);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Base element for box-shadow pixel art */
+        .pixel-art {
+            width: 5px; /* Base pixel size */
+            height: 5px;
+            background: transparent;
+        }
+
+        /* Scaled containers to make sprites bigger without losing crispness */
+        .sprite-container {
+            position: absolute;
+            transform: scale(2); /* Adjust scale for bigger/smaller screens via JS if needed */
+            bottom: 30%;
+            transition: all 3s linear;
+        }
+
+        #player1-container {
+            left: -100px; /* Start off screen left */
+            z-index: 10;
+        }
+
+        #player2-container {
+            right: -100px; /* Start off screen right */
+            z-index: 10;
+        }
+
+        #heart-container {
+            position: absolute;
+            top: 20%;
+            left: 50%;
+            margin-left: -20px; /* Center adjustment */
+            transform: scale(0);
+            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 20;
+        }
+        
+        .show-heart {
+            transform: scale(3) !important; 
+        }
+
+        .retro-text {
+            text-shadow: 2px 2px 0 #ff00ff, -2px -2px 0 #00ffff;
+            line-height: 1.5;
+        }
+
+        #start-btn {
+            cursor: pointer;
+            padding: 20px;
+            border: 4px solid #fff;
+            background: transparent;
+            color: #fff;
+            font-family: inherit;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+            z-index: 30;
+        }
+
+        #start-btn:hover, #start-btn:focus {
+            background: #fff;
+            color: #000;
+            outline: none;
+            box-shadow: 0 0 15px #fff;
+        }
+
+        #message-box {
+            position: absolute;
+            bottom: 10%;
+            width: 80%;
+            text-align: center;
+            min-height: 60px;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            color: #ffd700; /* Gold */
+            text-shadow: 2px 2px 0 #000;
+            z-index: 30;
+        }
+
+        @media (min-width: 640px) {
+            .sprite-container { transform: scale(3); }
+            #heart-container.show-heart { transform: scale(4) !important; }
+            #message-box { font-size: 1rem; }
+        }
+
+        /* Starry background elements */
+        .star {
+            position: absolute;
+            background: #fff;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8">
+
+<div id="game-screen" class="crt relative w-full h-full max-h-[80vh]">
+    
+    <!-- Starry Background Layer -->
+    <div id="stars-layer" class="absolute inset-0 z-0"></div>
+
+    <!-- Start Screen UI -->
+    <div id="start-ui" class="flex flex-col items-center justify-center h-full z-30">
+        <h1 class="retro-text text-2xl sm:text-4xl mb-12 text-center text-white">PLAYER 1<br><span class="text-sm sm:text-lg text-gray-400">meets</span><br>PLAYER 2</h1>
+        <button id="start-btn" class="blink">INSERT COIN<br><span class="text-xs mt-2 block">(Click to Start)</span></button>
+    </div>
+
+    <!-- Gameplay Actors (Hidden initially via positioning) -->
+    <div id="player1-container" class="sprite-container float" style="animation-delay: 0s;">
+        <div id="p1-sprite" class="pixel-art"></div>
+    </div>
+
+    <div id="player2-container" class="sprite-container float" style="animation-delay: 1.5s;">
+        <div id="p2-sprite" class="pixel-art"></div>
+    </div>
+
+    <!-- The Heart (Hidden initially via scale 0) -->
+    <div id="heart-container" class="heartbeat">
+        <div id="heart-sprite" class="pixel-art"></div>
+    </div>
+
+    <!-- Typewriter Message Box -->
+    <div id="message-box"></div>
+
+</div>
+
+<script>
+    // 1. Pixel Art Definitions using Grids
+    // '.' = transparent, other letters map to colors
+    
+    const p1Grid = [
+        "....BBBB....",
+        "...BBBBBB...",
+        "...BDDBBD...",
+        "..BBBDDBBB..",
+        "..BBBBBBBB..",
+        "..B.BBBB.B..",
+        "....BBBB....",
+        "...DD..DD...",
+        "...DD..DD...",
+        "....D..D...."
+    ];
+
+    const p2Grid = [
+        "....PPPP....",
+        "...PPPPPP...",
+        "...PDDPPD...",
+        "..PPPDPPPP..",
+        "..PPPPPPPP..",
+        "..P.PPPP.P..",
+        "....PPPP....",
+        "...DD..DD...",
+        "...DD..DD...",
+        "....D..D...."
+    ];
+
+    const heartGrid = [
+        "..RRR...RRR..",
+        ".RRRRR.RRRRR.",
+        "RRRRRRRRRRRRR",
+        "RRRRRRRRRRRRR",
+        "RRRRRRRRRRRRR",
+        ".RRRRRRRRRRR.",
+        "..RRRRRRRRR..",
+        "...RRRRRRR...",
+        "....RRRRR....",
+        ".....RRR.....",
+        "......R......"
+    ];
+
+    // Color maps for the sprites
+    const colorMap = {
+        'B': '#3b82f6', // Blue (Player 1)
+        'P': '#ec4899', // Pink (Player 2)
+        'D': '#fcd34d', // Skin/Detail (Yellowish/Gold)
+        'R': '#ef4444'  // Red (Heart)
+    };
+
+    /**
+     * Converts a string grid into a single CSS box-shadow string.
+     * This is the secret to lightweight, crisp pixel art in CSS!
+     */
+    function generateBoxShadow(grid, pixelSize, colors) {
+        let shadows = [];
+        for (let y = 0; y < grid.length; y++) {
+            for (let x = 0; x < grid[y].length; x++) {
+                const char = grid[y][x];
+                if (char !== '.') {
+                    const color = colors[char] || '#fff';
+                    // The shadow offset creates the pixel at (x, y)
+                    shadows.push(`${x * pixelSize}px ${y * pixelSize}px 0 ${color}`);
+                }
+            }
+        }
+        return shadows.join(', ');
+    }
+
+    // Apply the generated shadows to our DOM elements
+    const pixelSize = 5; // Matches the CSS .pixel-art width/height
+    document.getElementById('p1-sprite').style.boxShadow = generateBoxShadow(p1Grid, pixelSize, colorMap);
+    document.getElementById('p2-sprite').style.boxShadow = generateBoxShadow(p2Grid, pixelSize, colorMap);
+    document.getElementById('heart-sprite').style.boxShadow = generateBoxShadow(heartGrid, pixelSize, colorMap);
+
+    // 2. Audio Engine (Synthesizing retro bleeps and bloops)
+    let audioCtx = null;
+
+    function initAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    function playTone(frequency, type, duration, startTimeOffset, volume = 0.1) {
+        if (!audioCtx) return;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        
+        osc.type = type; // 'square' is best for retro 8-bit sound
+        osc.frequency.setValueAtTime(frequency, audioCtx.currentTime + startTimeOffset);
+        
+        // Envelope to avoid clicking sounds
+        gain.gain.setValueAtTime(volume, audioCtx.currentTime + startTimeOffset);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTimeOffset + duration);
+        
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        
+        osc.start(audioCtx.currentTime + startTimeOffset);
+        osc.stop(audioCtx.currentTime + startTimeOffset + duration);
+    }
+
+    // Sound Sequences
+    function playCoinSound() {
+        playTone(987.77, 'square', 0.1, 0); // B5
+        playTone(1318.51, 'square', 0.3, 0.1); // E6
+    }
+
+    function playStepSound(timeOffset) {
+        playTone(150, 'triangle', 0.05, timeOffset, 0.05);
+    }
+
+    function playSuccessChime() {
+        // A happy, ascending arpeggio
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // C Major arpeggio
+        notes.forEach((freq, i) => {
+            playTone(freq, 'square', 0.15, i * 0.1, 0.05);
+        });
+    }
+
+    function playTypingBeep() {
+        // High pitched, very short tick
+        playTone(800 + Math.random() * 200, 'square', 0.02, 0, 0.02);
+    }
+
+    // 3. Visual Effects & Logic
+
+    // Generate random background stars
+    const starsLayer = document.getElementById('stars-layer');
+    for (let i = 0; i < 50; i++) {
+        const star = document.createElement('div');
+        star.classList.add('star');
+        // Random size between 1 and 3 px
+        const size = Math.random() * 2 + 1;
+        star.style.width = `${size}px`;
+        star.style.height = `${size}px`;
+        star.style.left = `${Math.random() * 100}%`;
+        star.style.top = `${Math.random() * 100}%`;
+        // Some stars blink
+        if (Math.random() > 0.5) {
+            star.style.animation = `blink ${Math.random() * 2 + 1}s infinite step-end`;
+        }
+        starsLayer.appendChild(star);
+    }
+
+    const messageBox = document.getElementById('message-box');
+    const messages = [
+        "LEVEL COMPLETE!",
+        "Player 1 and Player 2 successfully paired.",
+        "New adventure unlocked.",
+        "I love you."
+    ];
+
+    async function typeWriterEffect(texts) {
+        messageBox.innerHTML = '';
+        for (let i = 0; i < texts.length; i++) {
+            const line = texts[i];
+            const lineDiv = document.createElement('div');
+            messageBox.appendChild(lineDiv);
+            
+            for (let j = 0; j < line.length; j++) {
+                lineDiv.innerHTML += line.charAt(j);
+                if (line.charAt(j) !== ' ') playTypingBeep();
+                // Random typing delay
+                await new Promise(r => setTimeout(r, 30 + Math.random() * 50)); 
+            }
+            // Wait before next line
+            await new Promise(r => setTimeout(r, 1000));
+        }
+        
+        // Blink cursor at the end
+        const cursor = document.createElement('span');
+        cursor.innerHTML = ' _';
+        cursor.className = 'blink';
+        messageBox.lastChild.appendChild(cursor);
+    }
+
+    // 4. Main Sequence Orchestration
+    document.getElementById('start-btn').addEventListener('click', () => {
+        // Must initialize audio context inside a user gesture
+        initAudio();
+        playCoinSound();
+
+        // Hide Start UI
+        const startUI = document.getElementById('start-ui');
+        startUI.style.opacity = '0';
+        setTimeout(() => startUI.style.display = 'none', 500);
+
+        // Start walking animation
+        const p1 = document.getElementById('player1-container');
+        const p2 = document.getElementById('player2-container');
+        
+        // Play step sounds while they walk
+        for(let i=0; i<15; i++) {
+            playStepSound(0.5 + (i * 0.2));
+        }
+
+        setTimeout(() => {
+            // Move to center
+            // CSS transition will smoothly slide them
+            p1.style.left = 'calc(50% - 60px)'; // Adjust offsets based on sprite width
+            p2.style.right = 'calc(50% - 60px)';
+        }, 500);
+
+        // When they meet in the middle
+        setTimeout(() => {
+            // Show Heart
+            const heart = document.getElementById('heart-container');
+            heart.classList.add('show-heart');
+            playSuccessChime();
+
+            // Start typing message slightly after
+            setTimeout(() => {
+                typeWriterEffect(messages);
+            }, 1000);
+
+        }, 3500); // 3 seconds for transition + 0.5s initial delay
+    });
+
+</script>
+</body>
+</html>

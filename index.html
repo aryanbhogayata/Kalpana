@@ -3,432 +3,569 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retro Romance Arcade</title>
+    <title>Interactive Kawaii Kitty</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Press Start 2P', cursive;
-            background-color: #050510;
-            color: #fff;
+            font-family: 'Quicksand', sans-serif;
+            background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+            /* A dreamy, cute pastel gradient background */
+            background: linear-gradient(120deg, #a1c4fd 0%, #c2e9fb 100%);
             overflow: hidden;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
             touch-action: manipulation;
         }
 
-        /* CRT Screen Overlay Effect */
-        .crt::before {
-            content: " ";
-            display: block;
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            right: 0;
-            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
-            z-index: 50;
-            background-size: 100% 4px, 6px 100%;
-            pointer-events: none;
+        @keyframes float {
+            0%, 100% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(2deg); }
+        }
+
+        @keyframes float-heart {
+            0% { transform: translateY(0) scale(0.5) rotate(-10deg); opacity: 1; }
+            100% { transform: translateY(-150px) scale(1.5) rotate(20deg); opacity: 0; }
         }
 
         @keyframes blink {
-            0%, 49% { opacity: 1; }
-            50%, 100% { opacity: 0; }
+            0%, 4%, 100% { transform: scaleY(1); }
+            2% { transform: scaleY(0.1); }
         }
 
-        .blink {
-            animation: blink 1s step-end infinite;
+        @keyframes ear-twitch {
+            0%, 100% { transform: rotate(0deg); }
+            5% { transform: rotate(-10deg); }
+            10% { transform: rotate(5deg); }
+            15% { transform: rotate(0deg); }
         }
 
-        @keyframes heartbeat {
-            0% { transform: scale(1); }
-            14% { transform: scale(1.3); }
-            28% { transform: scale(1); }
-            42% { transform: scale(1.3); }
-            70% { transform: scale(1); }
-            100% { transform: scale(1); }
-        }
-
-        .heartbeat {
-            animation: heartbeat 1.5s infinite;
-        }
-
-        @keyframes float {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-10px); }
-        }
-
-        .float {
-            animation: float 3s ease-in-out infinite;
-        }
-
-        #game-screen {
-            width: 100%;
-            max-width: 800px;
-            aspect-ratio: 4/3;
-            background: #000;
-            position: relative;
-            border: 4px solid #333;
-            border-radius: 16px;
-            box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), inset 0 0 30px rgba(0, 0, 0, 0.8);
-            overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-
-        /* Base element for box-shadow pixel art */
-        .pixel-art {
-            width: 5px; /* Base pixel size */
-            height: 5px;
-            background: transparent;
-        }
-
-        /* Scaled containers to make sprites bigger without losing crispness */
-        .sprite-container {
-            position: absolute;
-            transform: scale(2); /* Adjust scale for bigger/smaller screens via JS if needed */
-            bottom: 30%;
-            transition: all 3s linear;
-        }
-
-        #player1-container {
-            left: -100px; /* Start off screen left */
-            z-index: 10;
-        }
-
-        #player2-container {
-            right: -100px; /* Start off screen right */
-            z-index: 10;
-        }
-
-        #heart-container {
-            position: absolute;
-            top: 20%;
-            left: 50%;
-            margin-left: -20px; /* Center adjustment */
-            transform: scale(0);
-            transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            z-index: 20;
-        }
-        
-        .show-heart {
-            transform: scale(3) !important; 
-        }
-
-        .retro-text {
-            text-shadow: 2px 2px 0 #ff00ff, -2px -2px 0 #00ffff;
-            line-height: 1.5;
-        }
-
-        #start-btn {
+        .cat-container {
+            animation: float 4s ease-in-out infinite;
             cursor: pointer;
-            padding: 20px;
-            border: 4px solid #fff;
-            background: transparent;
-            color: #fff;
-            font-family: inherit;
-            font-size: 1.2rem;
-            transition: all 0.2s;
-            z-index: 30;
+            position: relative;
+            z-index: 10;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         }
 
-        #start-btn:hover, #start-btn:focus {
-            background: #fff;
-            color: #000;
-            outline: none;
-            box-shadow: 0 0 15px #fff;
+        .cat-container:hover {
+            transform: scale(1.05);
         }
 
-        #message-box {
+        .cat-container:active {
+            transform: scale(0.95);
+        }
+
+        /* SVG specific classes for internal animations */
+        .blinking {
+            transform-origin: center;
+            animation: blink 4s infinite;
+        }
+
+        .ear-left {
+            transform-origin: 20% 20%;
+            animation: ear-twitch 7s infinite 2s; /* Delayed twitch */
+        }
+
+        .ear-right {
+            transform-origin: 80% 20%;
+            animation: ear-twitch 5s infinite;
+        }
+
+        .heart {
             position: absolute;
-            bottom: 10%;
-            width: 80%;
-            text-align: center;
-            min-height: 60px;
-            font-size: 0.8rem;
-            line-height: 1.8;
-            color: #ffd700; /* Gold */
-            text-shadow: 2px 2px 0 #000;
-            z-index: 30;
+            color: #ff6b81;
+            font-size: 2rem;
+            pointer-events: none;
+            z-index: 5;
+            animation: float-heart 2s ease-out forwards;
+            filter: drop-shadow(0 4px 6px rgba(255, 107, 129, 0.3));
         }
 
-        @media (min-width: 640px) {
-            .sprite-container { transform: scale(3); }
-            #heart-container.show-heart { transform: scale(4) !important; }
-            #message-box { font-size: 1rem; }
+        /* Smooth pupil transitions to prevent jittering */
+        #left-pupil, #right-pupil {
+            transition: transform 0.1s ease-out;
         }
 
-        /* Starry background elements */
-        .star {
+        /* Hidden class for toggling SVG elements */
+        .hidden-face {
+            display: none;
+        }
+
+        /* Sparkle effect on the background */
+        .sparkle {
             position: absolute;
-            background: #fff;
+            background: white;
             border-radius: 50%;
+            opacity: 0.6;
+            pointer-events: none;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #ffb7b2; 
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #ff9a93; 
         }
     </style>
 </head>
-<body class="p-4 sm:p-8">
+<body class="w-screen h-screen flex flex-col items-center justify-center m-0 relative">
 
-<div id="game-screen" class="crt relative w-full h-full max-h-[80vh]">
-    
-    <!-- Starry Background Layer -->
-    <div id="stars-layer" class="absolute inset-0 z-0"></div>
+    <!-- Decorative background elements -->
+    <div id="sparkle-container" class="absolute inset-0 z-0"></div>
 
-    <!-- Start Screen UI -->
-    <div id="start-ui" class="flex flex-col items-center justify-center h-full z-30">
-        <h1 class="retro-text text-2xl sm:text-4xl mb-12 text-center text-white">PLAYER 1<br><span class="text-sm sm:text-lg text-gray-400">meets</span><br>PLAYER 2</h1>
-        <button id="start-btn" class="blink">INSERT COIN<br><span class="text-xs mt-2 block">(Click to Start)</span></button>
+    <div class="z-20 text-center mb-8 pointer-events-none">
+        <h1 class="text-4xl md:text-5xl font-bold text-white drop-shadow-md mb-2 tracking-wide">
+            Kawaii Kitty
+        </h1>
+        <p class="text-white text-lg md:text-xl opacity-90 font-medium drop-shadow-sm">
+            Move your mouse! Click or tap to pet.
+        </p>
     </div>
 
-    <!-- Gameplay Actors (Hidden initially via positioning) -->
-    <div id="player1-container" class="sprite-container float" style="animation-delay: 0s;">
-        <div id="p1-sprite" class="pixel-art"></div>
-    </div>
-
-    <div id="player2-container" class="sprite-container float" style="animation-delay: 1.5s;">
-        <div id="p2-sprite" class="pixel-art"></div>
-    </div>
-
-    <!-- The Heart (Hidden initially via scale 0) -->
-    <div id="heart-container" class="heartbeat">
-        <div id="heart-sprite" class="pixel-art"></div>
-    </div>
-
-    <!-- Typewriter Message Box -->
-    <div id="message-box"></div>
-
-</div>
-
-<script>
-    // 1. Pixel Art Definitions using Grids
-    // '.' = transparent, other letters map to colors
-    
-    const p1Grid = [
-        "....BBBB....",
-        "...BBBBBB...",
-        "...BDDBBD...",
-        "..BBBDDBBB..",
-        "..BBBBBBBB..",
-        "..B.BBBB.B..",
-        "....BBBB....",
-        "...DD..DD...",
-        "...DD..DD...",
-        "....D..D...."
-    ];
-
-    const p2Grid = [
-        "....PPPP....",
-        "...PPPPPP...",
-        "...PDDPPD...",
-        "..PPPDPPPP..",
-        "..PPPPPPPP..",
-        "..P.PPPP.P..",
-        "....PPPP....",
-        "...DD..DD...",
-        "...DD..DD...",
-        "....D..D...."
-    ];
-
-    const heartGrid = [
-        "..RRR...RRR..",
-        ".RRRRR.RRRRR.",
-        "RRRRRRRRRRRRR",
-        "RRRRRRRRRRRRR",
-        "RRRRRRRRRRRRR",
-        ".RRRRRRRRRRR.",
-        "..RRRRRRRRR..",
-        "...RRRRRRR...",
-        "....RRRRR....",
-        ".....RRR.....",
-        "......R......"
-    ];
-
-    // Color maps for the sprites
-    const colorMap = {
-        'B': '#3b82f6', // Blue (Player 1)
-        'P': '#ec4899', // Pink (Player 2)
-        'D': '#fcd34d', // Skin/Detail (Yellowish/Gold)
-        'R': '#ef4444'  // Red (Heart)
-    };
-
-    /**
-     * Converts a string grid into a single CSS box-shadow string.
-     * This is the secret to lightweight, crisp pixel art in CSS!
-     */
-    function generateBoxShadow(grid, pixelSize, colors) {
-        let shadows = [];
-        for (let y = 0; y < grid.length; y++) {
-            for (let x = 0; x < grid[y].length; x++) {
-                const char = grid[y][x];
-                if (char !== '.') {
-                    const color = colors[char] || '#fff';
-                    // The shadow offset creates the pixel at (x, y)
-                    shadows.push(`${x * pixelSize}px ${y * pixelSize}px 0 ${color}`);
-                }
-            }
-        }
-        return shadows.join(', ');
-    }
-
-    // Apply the generated shadows to our DOM elements
-    const pixelSize = 5; // Matches the CSS .pixel-art width/height
-    document.getElementById('p1-sprite').style.boxShadow = generateBoxShadow(p1Grid, pixelSize, colorMap);
-    document.getElementById('p2-sprite').style.boxShadow = generateBoxShadow(p2Grid, pixelSize, colorMap);
-    document.getElementById('heart-sprite').style.boxShadow = generateBoxShadow(heartGrid, pixelSize, colorMap);
-
-    // 2. Audio Engine (Synthesizing retro bleeps and bloops)
-    let audioCtx = null;
-
-    function initAudio() {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
-    }
-
-    function playTone(frequency, type, duration, startTimeOffset, volume = 0.1) {
-        if (!audioCtx) return;
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        
-        osc.type = type; // 'square' is best for retro 8-bit sound
-        osc.frequency.setValueAtTime(frequency, audioCtx.currentTime + startTimeOffset);
-        
-        // Envelope to avoid clicking sounds
-        gain.gain.setValueAtTime(volume, audioCtx.currentTime + startTimeOffset);
-        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + startTimeOffset + duration);
-        
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        
-        osc.start(audioCtx.currentTime + startTimeOffset);
-        osc.stop(audioCtx.currentTime + startTimeOffset + duration);
-    }
-
-    // Sound Sequences
-    function playCoinSound() {
-        playTone(987.77, 'square', 0.1, 0); // B5
-        playTone(1318.51, 'square', 0.3, 0.1); // E6
-    }
-
-    function playStepSound(timeOffset) {
-        playTone(150, 'triangle', 0.05, timeOffset, 0.05);
-    }
-
-    function playSuccessChime() {
-        // A happy, ascending arpeggio
-        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50]; // C Major arpeggio
-        notes.forEach((freq, i) => {
-            playTone(freq, 'square', 0.15, i * 0.1, 0.05);
-        });
-    }
-
-    function playTypingBeep() {
-        // High pitched, very short tick
-        playTone(800 + Math.random() * 200, 'square', 0.02, 0, 0.02);
-    }
-
-    // 3. Visual Effects & Logic
-
-    // Generate random background stars
-    const starsLayer = document.getElementById('stars-layer');
-    for (let i = 0; i < 50; i++) {
-        const star = document.createElement('div');
-        star.classList.add('star');
-        // Random size between 1 and 3 px
-        const size = Math.random() * 2 + 1;
-        star.style.width = `${size}px`;
-        star.style.height = `${size}px`;
-        star.style.left = `${Math.random() * 100}%`;
-        star.style.top = `${Math.random() * 100}%`;
-        // Some stars blink
-        if (Math.random() > 0.5) {
-            star.style.animation = `blink ${Math.random() * 2 + 1}s infinite step-end`;
-        }
-        starsLayer.appendChild(star);
-    }
-
-    const messageBox = document.getElementById('message-box');
-    const messages = [
-        "LEVEL COMPLETE!",
-        "Player 1 and Player 2 successfully paired.",
-        "New adventure unlocked.",
-        "I love you."
-    ];
-
-    async function typeWriterEffect(texts) {
-        messageBox.innerHTML = '';
-        for (let i = 0; i < texts.length; i++) {
-            const line = texts[i];
-            const lineDiv = document.createElement('div');
-            messageBox.appendChild(lineDiv);
+    <div class="cat-container w-64 h-64 md:w-80 md:h-80" id="cat-buddy">
+        <svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg" class="w-full h-full drop-shadow-2xl">
+            <!-- Tail (in back) -->
+            <path d="M 230 250 Q 280 250 280 200 Q 280 180 260 170 Q 240 160 220 180" fill="none" stroke="#fff" stroke-width="25" stroke-linecap="round" />
             
-            for (let j = 0; j < line.length; j++) {
-                lineDiv.innerHTML += line.charAt(j);
-                if (line.charAt(j) !== ' ') playTypingBeep();
-                // Random typing delay
-                await new Promise(r => setTimeout(r, 30 + Math.random() * 50)); 
+            <!-- Body -->
+            <ellipse cx="150" cy="240" rx="90" ry="60" fill="#ffffff" />
+            
+            <!-- Left Ear -->
+            <g class="ear-left">
+                <path d="M 70 120 L 30 30 L 120 70 Z" fill="#ffffff" />
+                <path d="M 68 100 L 45 45 L 105 75 Z" fill="#ffb7b2" />
+            </g>
+
+            <!-- Right Ear -->
+            <g class="ear-right">
+                <path d="M 230 120 L 270 30 L 180 70 Z" fill="#ffffff" />
+                <path d="M 232 100 L 255 45 L 195 75 Z" fill="#ffb7b2" />
+            </g>
+
+            <!-- Head -->
+            <ellipse cx="150" cy="150" rx="110" ry="90" fill="#ffffff" />
+
+            <!-- Blush -->
+            <circle cx="80" cy="180" r="16" fill="#ffb7b2" opacity="0.6" />
+            <circle cx="220" cy="180" r="16" fill="#ffb7b2" opacity="0.6" />
+
+            <!-- Nose -->
+            <polygon points="140,175 160,175 150,185" fill="#ffb7b2" />
+
+            <!-- Default Mouth -->
+            <g id="mouth-default" fill="none" stroke="#555" stroke-width="4" stroke-linecap="round">
+                <path d="M 150 185 Q 135 200 120 190" />
+                <path d="M 150 185 Q 165 200 180 190" />
+            </g>
+
+            <!-- Happy Mouth (Hidden initially) -->
+            <g id="mouth-happy" class="hidden-face" fill="none" stroke="#555" stroke-width="4" stroke-linecap="round">
+                <path d="M 120 185 Q 150 215 180 185" />
+                <path d="M 130 185 L 170 185" stroke-width="2" />
+                <path d="M 150 185 Q 150 205 165 200" fill="#ffb7b2" opacity="0.8" stroke="none" /> <!-- little tongue -->
+            </g>
+
+            <!-- Default Eyes Group -->
+            <g id="eyes-default" class="blinking">
+                <!-- Left Eye Base -->
+                <circle cx="100" cy="140" r="22" fill="#333" />
+                <!-- Left Pupil / Glints (Movable) -->
+                <g id="left-pupil">
+                    <circle cx="104" cy="136" r="8" fill="#fff" />
+                    <circle cx="94" cy="146" r="3" fill="#fff" />
+                </g>
+
+                <!-- Right Eye Base -->
+                <circle cx="200" cy="140" r="22" fill="#333" />
+                <!-- Right Pupil / Glints (Movable) -->
+                <g id="right-pupil">
+                    <circle cx="204" cy="136" r="8" fill="#fff" />
+                    <circle cx="194" cy="146" r="3" fill="#fff" />
+                </g>
+            </g>
+
+            <!-- Happy Eyes Group (Hidden initially, shown on click) -->
+            <g id="eyes-happy" class="hidden-face" fill="none" stroke="#333" stroke-width="6" stroke-linecap="round">
+                <path d="M 80 145 Q 100 120 120 145" />
+                <path d="M 180 145 Q 200 120 220 145" />
+            </g>
+
+            <!-- Paws -->
+            <ellipse cx="110" cy="260" rx="20" ry="25" fill="#ffffff" />
+            <ellipse cx="190" cy="260" rx="20" ry="25" fill="#ffffff" />
+            <path d="M 105 275 L 105 285 M 115 275 L 115 285" stroke="#eee" stroke-width="3" stroke-linecap="round" />
+            <path d="M 185 275 L 185 285 M 195 275 L 195 285" stroke="#eee" stroke-width="3" stroke-linecap="round" />
+        </svg>
+    </div>
+
+    <!-- New Button -->
+    <button id="reveal-btn" class="mt-8 z-30 px-8 py-4 bg-white/90 hover:bg-white text-pink-500 font-bold rounded-full shadow-lg backdrop-blur-sm transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2 text-lg border-2 border-pink-200">
+        💌 Open Kitty's Secret Message
+    </button>
+
+    <!-- Letter Modal -->
+    <div id="letter-modal" class="fixed inset-0 z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-500 bg-white/40 backdrop-blur-sm px-4">
+        <div class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl max-w-lg w-full transform translate-y-10 transition-transform duration-500 border-4 border-pink-100" id="letter-content-box">
+            <h2 class="text-3xl font-bold text-pink-400 mb-6 font-quicksand text-center">For You 💕</h2>
+            <div class="text-gray-600 leading-relaxed space-y-4 max-h-[50vh] overflow-y-auto custom-scrollbar pr-2 text-lg font-medium">
+                <p>My dearest,</p>
+                <p>I just wanted to take a little paws 🐾 to tell you how incredibly special you are to me.</p>
+                <p>Every day with you is like finding the warmest sunbeam to curl up in. You bring so much joy, comfort, and happiness into my life.</p>
+                <p>No matter how many times I might get distracted by the little things, my heart always comes right back to you.</p>
+                <p>Thank you for being my favorite person in the whole world. You are absolutely purr-fect.</p>
+                <p class="font-bold text-pink-500 text-2xl text-center mt-8">I love you! ❤️</p>
+            </div>
+            <button id="close-letter" class="mt-8 w-full bg-pink-100 hover:bg-pink-200 text-pink-600 font-bold py-3 rounded-full transition-colors">
+                Close Letter
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- 1. Background Generation ---
+        const sparkleContainer = document.getElementById('sparkle-container');
+        for (let i = 0; i < 30; i++) {
+            const sparkle = document.createElement('div');
+            sparkle.classList.add('sparkle');
+            const size = Math.random() * 4 + 2;
+            sparkle.style.width = `${size}px`;
+            sparkle.style.height = `${size}px`;
+            sparkle.style.left = `${Math.random() * 100}vw`;
+            sparkle.style.top = `${Math.random() * 100}vh`;
+            // Random floating animation for sparkles
+            sparkle.style.animation = `float ${Math.random() * 3 + 2}s ease-in-out infinite alternate`;
+            sparkle.style.animationDelay = `${Math.random() * 2}s`;
+            sparkleContainer.appendChild(sparkle);
+        }
+
+        // --- 2. Interactive Eye Tracking Logic ---
+        const cat = document.getElementById('cat-buddy');
+        const leftPupil = document.getElementById('left-pupil');
+        const rightPupil = document.getElementById('right-pupil');
+        
+        let isPetting = false; // Flag to stop eye tracking during the "happy" state
+
+        function updateEyes(clientX, clientY) {
+            if (isPetting) return;
+
+            // Get cat's bounding box to find its center on the screen
+            const rect = cat.getBoundingClientRect();
+            
+            // Cat's center coordinates
+            const catCenterX = rect.left + rect.width / 2;
+            const catCenterY = rect.top + rect.height / 2;
+
+            // Calculate distance and angle from cat center to cursor
+            const deltaX = clientX - catCenterX;
+            const deltaY = clientY - catCenterY;
+            const angle = Math.atan2(deltaY, deltaX);
+            
+            // Max distance the pupil should travel from the center of the eye
+            const maxRadius = 6; 
+            
+            // Calculate how far to push the pupil (caps at maxRadius)
+            const distance = Math.min(Math.sqrt(deltaX * deltaX + deltaY * deltaY) * 0.02, maxRadius);
+
+            // Calculate exact X and Y translation
+            const moveX = Math.cos(angle) * distance;
+            const moveY = Math.sin(angle) * distance;
+
+            // Apply translation to both pupils
+            leftPupil.style.transform = `translate(${moveX}px, ${moveY}px)`;
+            rightPupil.style.transform = `translate(${moveX}px, ${moveY}px)`;
+        }
+
+        // Listen for both mouse and touch movements
+        document.addEventListener('mousemove', (e) => {
+            updateEyes(e.clientX, e.clientY);
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if(e.touches.length > 0) {
+                updateEyes(e.touches[0].clientX, e.touches[0].clientY);
             }
-            // Wait before next line
-            await new Promise(r => setTimeout(r, 1000));
-        }
-        
-        // Blink cursor at the end
-        const cursor = document.createElement('span');
-        cursor.innerHTML = ' _';
-        cursor.className = 'blink';
-        messageBox.lastChild.appendChild(cursor);
-    }
+        });
 
-    // 4. Main Sequence Orchestration
-    document.getElementById('start-btn').addEventListener('click', () => {
-        // Must initialize audio context inside a user gesture
-        initAudio();
-        playCoinSound();
-
-        // Hide Start UI
-        const startUI = document.getElementById('start-ui');
-        startUI.style.opacity = '0';
-        setTimeout(() => startUI.style.display = 'none', 500);
-
-        // Start walking animation
-        const p1 = document.getElementById('player1-container');
-        const p2 = document.getElementById('player2-container');
-        
-        // Play step sounds while they walk
-        for(let i=0; i<15; i++) {
-            playStepSound(0.5 + (i * 0.2));
+        let audioCtx;
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
         }
 
-        setTimeout(() => {
-            // Move to center
-            // CSS transition will smoothly slide them
-            p1.style.left = 'calc(50% - 60px)'; // Adjust offsets based on sprite width
-            p2.style.right = 'calc(50% - 60px)';
-        }, 500);
+        function playMeowSound() {
+            if (!audioCtx) return;
+            
+            // Create a custom synthesized "meow/purr" sound
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            // Triangle wave gives a softer, somewhat vocal timbre
+            osc.type = 'triangle';
+            
+            // Frequency glissando (slide) to simulate a meow inflection
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime); // Start pitch
+            osc.frequency.exponentialRampToValueAtTime(700, audioCtx.currentTime + 0.3); // Pitch up
+            osc.frequency.exponentialRampToValueAtTime(300, audioCtx.currentTime + 0.6); // Pitch down
+            
+            // Volume envelope to make it fade in and out smoothly
+            gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+            gainNode.gain.linearRampToValueAtTime(0.2, audioCtx.currentTime + 0.1); // Attack
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6); // Release
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.6);
+        }
 
-        // When they meet in the middle
-        setTimeout(() => {
-            // Show Heart
-            const heart = document.getElementById('heart-container');
-            heart.classList.add('show-heart');
-            playSuccessChime();
+        const eyesDefault = document.getElementById('eyes-default');
+        const eyesHappy = document.getElementById('eyes-happy');
+        const mouthDefault = document.getElementById('mouth-default');
+        const mouthHappy = document.getElementById('mouth-happy');
 
-            // Start typing message slightly after
+        function petCat(e) {
+            initAudio();
+            playMeowSound();
+            
+            isPetting = true;
+
+            // Toggle facial expression SVG elements
+            eyesDefault.classList.add('hidden-face');
+            eyesHappy.classList.remove('hidden-face');
+            mouthDefault.classList.add('hidden-face');
+            mouthHappy.classList.remove('hidden-face');
+            
+            // Center pupils for when the default eyes return
+            leftPupil.style.transform = `translate(0px, 0px)`;
+            rightPupil.style.transform = `translate(0px, 0px)`;
+
+            // Spawn cute floating hearts
+            spawnHearts(e);
+
+            // Revert back to normal state after 1.5 seconds
             setTimeout(() => {
-                typeWriterEffect(messages);
-            }, 1000);
+                eyesDefault.classList.remove('hidden-face');
+                eyesHappy.classList.add('hidden-face');
+                mouthDefault.classList.remove('hidden-face');
+                mouthHappy.classList.add('hidden-face');
+                isPetting = false;
+            }, 1500);
+        }
 
-        }, 3500); // 3 seconds for transition + 0.5s initial delay
-    });
+        function spawnHearts(e) {
+            // Determine spawn location (either from mouse click or center of cat)
+            let originX = window.innerWidth / 2;
+            let originY = window.innerHeight / 2;
+            
+            if (e && e.clientX) {
+                originX = e.clientX;
+                originY = e.clientY - 50; // slightly above the cursor
+            } else if (e && e.touches && e.touches.length > 0) {
+                originX = e.touches[0].clientX;
+                originY = e.touches[0].clientY - 50;
+            }
 
-</script>
+            // Spawn 3-5 hearts
+            const numHearts = Math.floor(Math.random() * 3) + 3;
+            
+            for (let i = 0; i < numHearts; i++) {
+                const heart = document.createElement('div');
+                heart.innerHTML = '❤'; // Heart emoji/character
+                heart.className = 'heart';
+                
+                // Slight randomization for position
+                const offsetX = (Math.random() - 0.5) * 60;
+                heart.style.left = `${originX + offsetX}px`;
+                heart.style.top = `${originY}px`;
+                
+                // Slight randomization for animation duration and delay
+                heart.style.animationDuration = `${1.5 + Math.random() * 1}s`;
+                
+                document.body.appendChild(heart);
+                
+                // Clean up DOM after animation completes
+                setTimeout(() => {
+                    heart.remove();
+                }, 2500);
+            }
+        }
+
+        // Attach click and touch events to the cat container
+        cat.addEventListener('mousedown', petCat);
+        cat.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // Prevent double firing from simulated mousedown
+            petCat(e);
+        });
+
+        // --- 3. Love Letter & TTS Voice ---
+        const revealBtn = document.getElementById('reveal-btn');
+        const letterModal = document.getElementById('letter-modal');
+        const letterBox = document.getElementById('letter-content-box');
+        const closeLetterBtn = document.getElementById('close-letter');
+        
+        let hasFetchedAudio = false;
+        let cachedAudio = null;
+
+        revealBtn.addEventListener('click', async () => {
+            if (hasFetchedAudio && cachedAudio) {
+                openModal();
+                cachedAudio.play().catch(e => console.log("Audio play blocked", e));
+                return;
+            }
+
+            const originalText = revealBtn.innerHTML;
+            revealBtn.innerHTML = '🐾 Kitty is thinking...';
+            revealBtn.disabled = true;
+
+            // Initialize empty audio context to bypass strict browser audio policies on async awaits
+            if (!cachedAudio) {
+                cachedAudio = new Audio();
+            }
+
+            try {
+                await fetchCatTTS();
+                openModal();
+                if (cachedAudio.src) {
+                    cachedAudio.play().catch(e => console.log("Audio play blocked", e));
+                }
+            } catch (err) {
+                console.error("Audio failed", err);
+                openModal(); // Open it anyway if TTS fails to load
+            } finally {
+                revealBtn.innerHTML = originalText;
+                revealBtn.disabled = false;
+            }
+        });
+
+        closeLetterBtn.addEventListener('click', () => {
+            letterModal.classList.remove('opacity-100', 'pointer-events-auto');
+            letterModal.classList.add('opacity-0', 'pointer-events-none');
+            letterBox.classList.remove('translate-y-0');
+            letterBox.classList.add('translate-y-10');
+            if (cachedAudio) {
+                cachedAudio.pause();
+                cachedAudio.currentTime = 0; // Reset audio to the beginning
+            }
+        });
+
+        function openModal() {
+            letterModal.classList.remove('opacity-0', 'pointer-events-none');
+            letterModal.classList.add('opacity-100', 'pointer-events-auto');
+            letterBox.classList.remove('translate-y-10');
+            letterBox.classList.add('translate-y-0');
+            
+            // Spawn some hearts when letter opens
+            spawnHearts();
+        }
+
+        async function fetchCatTTS() {
+            const payload = {
+                contents: [{
+                    parts: [{ text: "Say in a very cute, playful, and affectionate cat voice: Meow! ... I love you!" }]
+                }],
+                generationConfig: {
+                    responseModalities: ["AUDIO"],
+                    speechConfig: {
+                        voiceConfig: {
+                            prebuiltVoiceConfig: { voiceName: "Leda" } // Leda is youthful and bright
+                        }
+                    }
+                },
+                model: "gemini-2.5-flash-preview-tts"
+            };
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(apiUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            const part = result?.candidates?.[0]?.content?.parts?.[0];
+            const audioData = part?.inlineData?.data;
+            const mimeType = part?.inlineData?.mimeType;
+
+            if (audioData && mimeType && mimeType.startsWith("audio/")) {
+                // Decode the base64 signed PCM16 audio data returned by Gemini Live TTS
+                const sampleRate = parseInt(mimeType.match(/rate=(\d+)/)[1], 10) || 24000;
+                const pcmData = base64ToArrayBuffer(audioData);
+                const pcm16 = new Int16Array(pcmData);
+                const wavBlob = pcmToWav(pcm16, sampleRate);
+                const audioUrl = URL.createObjectURL(wavBlob);
+                
+                cachedAudio.src = audioUrl;
+                hasFetchedAudio = true;
+            }
+        }
+
+        // Utilities for audio conversion (PCM to WAV wrapper)
+        function base64ToArrayBuffer(base64) {
+            const binaryString = window.atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        function pcmToWav(pcmData, sampleRate) {
+            const numChannels = 1;
+            const bitsPerSample = 16;
+            const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
+            const blockAlign = numChannels * (bitsPerSample / 8);
+            const dataSize = pcmData.length * (bitsPerSample / 8);
+            const buffer = new ArrayBuffer(44 + dataSize);
+            const view = new DataView(buffer);
+
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + dataSize, true);
+            writeString(view, 8, 'WAVE');
+            
+            // fmt sub-chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM format
+            view.setUint16(22, numChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, byteRate, true);
+            view.setUint16(32, blockAlign, true);
+            view.setUint16(34, bitsPerSample, true);
+            
+            // data sub-chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, dataSize, true);
+
+            // Write PCM data points
+            let offset = 44;
+            for (let i = 0; i < pcmData.length; i++, offset += 2) {
+                view.setInt16(offset, pcmData[i], true);
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+
+    </script>
 </body>
 </html>
